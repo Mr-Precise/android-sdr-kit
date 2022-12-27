@@ -50,6 +50,7 @@ git clone https://github.com/airspy/airspyone_host
 
 git clone https://github.com/AlexandreRouma/hackrf
 
+# Modded rtl-sdr
 git clone https://github.com/Mr-Precise/rtl-sdr -b android librtlsdr
 
 # Build ZSTD
