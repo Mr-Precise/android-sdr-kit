@@ -50,7 +50,7 @@ git clone https://github.com/airspy/airspyone_host
 
 git clone https://github.com/AlexandreRouma/hackrf
 
-git clone https://github.com/Mr-Precise/rtl-sdr -b amdroid-temp librtlsdr
+git clone https://github.com/Mr-Precise/rtl-sdr librtlsdr
 
 # Build ZSTD
 build_zstd() { # [arch] [android_abi] [compiler_abi]
