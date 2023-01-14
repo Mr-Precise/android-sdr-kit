@@ -1,6 +1,10 @@
 name: Build Binaries
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ rtlsdr-orig ]
+  pull_request:
+    branches: [ rtlsdr-orig ]
 
 jobs:
     build_debian_buster:
