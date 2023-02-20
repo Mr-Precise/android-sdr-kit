@@ -8,6 +8,13 @@ load_android_toolchain() { # [arch] [compiler_abi]
     export AS="$ANDROID_NDK_TOOLCHAIN/$1-linux-android$2$ANDROID_API_LEVEL-as"
 }
 
+load_native_toolchain() { # [arch] [compiler_abi]
+    export LD="ld"
+    export CC="gcc"
+    export CXX="g++"
+    export AS="as"
+}
+
 gen_cmake_args() { # [android_abi]
     echo -DENABLE_TESTING=OFF -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_CMAKE" -DANDROID_ABI=$1 -DANDROID_ARM_NEON=ON -DANDROID_NATIVE_API_LEVEL=$ANDROID_API_LEVEL -DENABLE_TESTING=OFF -DCMAKE_INSTALL_PREFIX=/ \
         -DCMAKE_INSTALL_LIBDIR=/lib -DCMAKE_INSTALL_FULL_LIBDIR=/lib \
@@ -25,6 +32,14 @@ gen_cmake_fftw_args() { # [android_abi]
     echo -DFFTW_LIBRARIES=$SDR_KIT_ROOT/$1/lib/libfftw3f.so -DFFTW_INCLUDES=$SDR_KIT_ROOT/$1/include -DFFTW_FOUND=1
 }
 
+gen_cmake_libxml2_args() { # [android_abi]
+    echo -DLIBXML2_LIBRARY=$SDR_KIT_ROOT/$1/lib/libxml2.so -DLIBXML2_INCLUDE_DIR=$SDR_KIT_ROOT/$1/include/libxml2 -DLIBXML2_FOUND=1
+}
+
+gen_cmake_libiio_args() { # [android_abi]
+    echo -DLIBIIO_LIBRARIES=$SDR_KIT_ROOT/$1/lib/libiio.so -DLIBIIO_INCLUDEDIR=$SDR_KIT_ROOT/$1/include
+}
+
 # Download libaries
 wget https://github.com/facebook/zstd/releases/download/v1.5.2/zstd-1.5.2.tar.gz
 tar -zxvf zstd-1.5.2.tar.gz
@@ -38,9 +53,9 @@ wget https://github.com/drowe67/codec2/archive/refs/tags/v1.0.5.zip
 7z x v1.0.5.zip
 mv codec2-1.0.5 codec2
 
-wget https://github.com/libusb/libusb/releases/download/v1.0.25/libusb-1.0.25.tar.bz2
-tar -xvf libusb-1.0.25.tar.bz2
-mv libusb-1.0.25 libusb
+wget https://github.com/libusb/libusb/releases/download/v1.0.26/libusb-1.0.26.tar.bz2
+tar -xvf libusb-1.0.26.tar.bz2
+mv libusb-1.0.26 libusb
 
 git clone --recurse-submodules https://github.com/gnuradio/volk
 
@@ -83,20 +98,21 @@ build_fftw x86_64
 build_fftw armeabi-v7a
 build_fftw arm64-v8a
 
-# # Build codec2
-# build_codec2() { # [android_abi]
-#     echo "===================== Codec2 ($1) ====================="
-#     cd codec2
-#     mkdir -p build_$1 && cd build_$1
-#     cmake $(gen_cmake_args $1) ..
-#     make $MAKEOPTS
-#     make DESTDIR=$SDR_KIT_ROOT/$1 install
-#     cd ../../
-# }
-# build_codec2 x86
-# build_codec2 x86_64
-# build_codec2 armeabi-v7a
-# build_codec2 arm64-v8a
+# Build codec2
+build_codec2() { # [android_abi]
+    echo "===================== Codec2 ($1) ====================="
+    cd codec2
+    mkdir -p build_$1 && cd build_$1
+    load_native_toolchain
+    cmake $(gen_cmake_args $1) -DUNITTEST=FALSE -DGENERATE_CODEBOOK=$SDR_KIT_BUILD/codec2/build_linux/src/generate_codebook ..
+    make $MAKEOPTS
+    make DESTDIR=$SDR_KIT_ROOT/$1 install
+    cd ../../
+}
+build_codec2 x86
+build_codec2 x86_64
+build_codec2 armeabi-v7a
+build_codec2 arm64-v8a
 
 # Build libusb
 build_libusb() {
@@ -203,3 +219,50 @@ build_librtlsdr x86
 build_librtlsdr x86_64
 build_librtlsdr armeabi-v7a
 build_librtlsdr arm64-v8a
+
+# Build libxml2
+build_libxml2() { # [android_abi]
+    echo "===================== LibXML2 ($1) ====================="
+    cd libxml2
+    mkdir -p build_$1 && cd build_$1
+    cmake $(gen_cmake_args $1) -DLIBXML2_WITH_LZMA=OFF -DLIBXML2_WITH_PYTHON=OFF ..
+    make $MAKEOPTS
+    make DESTDIR=$SDR_KIT_ROOT/$1 install
+    cd ../../
+}
+build_libxml2 x86
+build_libxml2 x86_64
+build_libxml2 armeabi-v7a
+build_libxml2 arm64-v8a
+
+# Build libiio
+build_libiio() { # [android_abi]
+    echo "===================== LibIIO ($1) ====================="
+    cd libiio
+    mkdir -p build_$1 && cd build_$1
+    cmake $(gen_cmake_args $1) $(gen_cmake_libxml2_args $1) -DWITH_TESTS=OFF -DWITH_USB_BACKEND=OFF -DHAVE_DNS_SD=OFF ..
+    make $MAKEOPTS
+    make DESTDIR=$SDR_KIT_ROOT/$1 install
+    cd ../../
+}
+build_libiio x86
+build_libiio x86_64
+build_libiio armeabi-v7a
+build_libiio arm64-v8a
+
+# Build libad9361
+build_libad9361() { # [android_abi]
+    echo "===================== LibAD9361 ($1) ====================="
+    cd libad9361
+    mkdir -p build_$1 && cd build_$1
+    cmake $(gen_cmake_args $1) $(gen_cmake_libiio_args $1) -DDESTINATION=$SDR_KIT_ROOT/$1 ..
+    make $MAKEOPTS
+    # Install is broken, so it must be done manually...
+    cp ../ad9361.h $SDR_KIT_ROOT/$1/include/
+    cp libad9361.so $SDR_KIT_ROOT/$1/lib/
+    cd ../../
+}
+build_libad9361 x86
+build_libad9361 x86_64
+build_libad9361 armeabi-v7a
+build_libad9361 arm64-v8a
