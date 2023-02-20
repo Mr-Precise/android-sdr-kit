@@ -68,8 +68,8 @@ git clone https://github.com/AlexandreRouma/hackrf
 # Modded rtl-sdr
 git clone https://github.com/Mr-Precise/rtl-sdr -b android librtlsdr
 
-wget https://download.gnome.org/sources/libxml2/2.9/libxml2-2.9.14.tar.xz
-tar -xvf libxml2-2.9.14.tar.xz
+wget https://github.com/GNOME/libxml2/archive/refs/tags/v2.9.14.tar.gz
+tar -xvf v2.9.14.tar.gz
 mv libxml2-2.9.14 libxml2
 
 wget https://github.com/analogdevicesinc/libiio/archive/refs/tags/v0.24.tar.gz
