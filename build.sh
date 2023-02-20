@@ -67,6 +67,18 @@ git clone https://github.com/AlexandreRouma/hackrf
 
 git clone https://github.com/Mr-Precise/rtl-sdr librtlsdr
 
+wget https://github.com/GNOME/libxml2/archive/refs/tags/v2.9.14.tar.gz
+tar -xvf v2.9.14.tar.gz
+mv libxml2-2.9.14 libxml2
+
+wget https://github.com/analogdevicesinc/libiio/archive/refs/tags/v0.24.tar.gz
+tar -zxvf v0.24.tar.gz
+mv libiio-0.24 libiio
+
+wget https://github.com/analogdevicesinc/libad9361-iio/archive/refs/tags/v0.2.tar.gz
+tar -zxvf v0.2.tar.gz
+mv libad9361-iio-0.2 libad9361
+
 # Build ZSTD
 build_zstd() { # [arch] [android_abi] [compiler_abi]
     echo "===================== ZSTD ($2) ====================="
