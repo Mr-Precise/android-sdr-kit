@@ -7,7 +7,7 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
-        - uses: actions/checkout@v2
+        - uses: actions/checkout@v4
         
         - name: Build
           run: cd $GITHUB_WORKSPACE && docker build --tag android-sdr-kit .
@@ -20,7 +20,7 @@ jobs:
           run: docker cp build:/root/android-sdr-kit.tar.gz ./
 
         - name: Save Deb Archive
-          uses: actions/upload-artifact@v2
+          uses: actions/upload-artifact@v4
           with:
               name: android-sdr-kit
               path: ${{runner.workspace}}/android-sdr-kit.tar.gz
