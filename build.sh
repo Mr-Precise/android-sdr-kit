@@ -81,6 +81,8 @@ wget https://github.com/analogdevicesinc/libad9361-iio/archive/refs/tags/v0.2.ta
 tar -zxvf v0.2.tar.gz
 mv libad9361-iio-0.2 libad9361
 
+git clone https://github.com/hydrasdr/hydrasdr-host
+
 # Build ZSTD
 build_zstd() { # [arch] [android_abi] [compiler_abi]
     echo "===================== ZSTD ($2) ====================="
@@ -280,3 +282,18 @@ build_libad9361 x86
 build_libad9361 x86_64
 build_libad9361 armeabi-v7a
 build_libad9361 arm64-v8a
+
+# Build libhydrasdr
+build_libhydrasdr() { # [android_abi]
+    echo "===================== libhydrasdr ($1) ====================="
+    cd hydrasdr-host
+    mkdir -p build_$1 && cd build_$1
+    cmake $(gen_cmake_args $1) $(gen_cmake_libusb_args $1) ..
+    make $MAKEOPTS
+    make DESTDIR=$SDR_KIT_ROOT/$1 install
+    cd ../../
+}
+build_libhydrasdr x86
+build_libhydrasdr x86_64
+build_libhydrasdr armeabi-v7a
+build_libhydrasdr arm64-v8a
