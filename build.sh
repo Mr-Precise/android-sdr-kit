@@ -16,7 +16,8 @@ load_native_toolchain() { # [arch] [compiler_abi]
 }
 
 gen_cmake_args() { # [android_abi]
-    echo -DENABLE_TESTING=OFF -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_CMAKE" -DANDROID_ABI=$1 -DANDROID_ARM_NEON=ON -DANDROID_NATIVE_API_LEVEL=$ANDROID_API_LEVEL -DENABLE_TESTING=OFF -DCMAKE_INSTALL_PREFIX=/ \
+    echo -DENABLE_TESTING=OFF -DBUILD_TESTING=OFF -DBUILD_TESTS=OFF -DBUILD_EXAMPLES=OFF -DBUILD_DOC=OFF -DBUILD_DOCS=OFF \
+        -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_CMAKE" -DANDROID_ABI=$1 -DANDROID_ARM_NEON=ON -DANDROID_NATIVE_API_LEVEL=$ANDROID_API_LEVEL -DCMAKE_INSTALL_PREFIX=/ \
         -DCMAKE_INSTALL_LIBDIR=/lib -DCMAKE_INSTALL_FULL_LIBDIR=/lib \
         -DCMAKE_INSTALL_BINDIR=/bin -DCMAKE_INSTALL_FULL_BINDIR=/bin \
         -DCMAKE_INSTALL_BINDIR=/sbin -DCMAKE_INSTALL_FULL_BINDIR=/sbin \
@@ -25,7 +26,7 @@ gen_cmake_args() { # [android_abi]
 }
 
 gen_cmake_libusb_args() { # [android_abi]
-    echo -DLIBUSB_LIBRARIES=$SDR_KIT_ROOT/$1/lib/libusb1.0.so -DLIBUSB_INCLUDE_DIRS=$SDR_KIT_ROOT/$1/include -DLIBUSB_INCLUDE_DIR=$SDR_KIT_ROOT/$1/include -DLIBUSB_FOUND=1 -DLIBUSB_VERSION=1.0.25
+    echo -DLIBUSB_LIBRARIES=$SDR_KIT_ROOT/$1/lib/libusb1.0.so -DLIBUSB_INCLUDE_DIRS=$SDR_KIT_ROOT/$1/include -DLIBUSB_INCLUDE_DIR=$SDR_KIT_ROOT/$1/include -DLIBUSB_FOUND=1 -DLIBUSB_VERSION=1.0.30
 }
 
 gen_cmake_fftw_args() { # [android_abi]
@@ -66,7 +67,7 @@ git clone https://github.com/airspy/airspyone_host
 git clone https://github.com/AlexandreRouma/hackrf
 
 # Modded rtl-sdr
-git clone https://github.com/Mr-Precise/rtl-sdr -b android librtlsdr
+git clone https://github.com/Mr-Precise/rtl-sdr -b android-new librtlsdr
 
 wget https://github.com/GNOME/libxml2/archive/refs/tags/v2.9.14.tar.gz
 tar -xvf v2.9.14.tar.gz
@@ -85,9 +86,9 @@ build_zstd() { # [arch] [android_abi] [compiler_abi]
     echo "===================== ZSTD ($2) ====================="
     cd zstd
     load_android_toolchain $1 $3
-    make clean
-    make $MAKEOPTS
-    make prefix=/ libdir=/lib DESTDIR=$SDR_KIT_ROOT/$2 install
+    make -C lib clean
+    make -C lib $MAKEOPTS lib-release
+    make -C lib prefix=/ libdir=/lib DESTDIR=$SDR_KIT_ROOT/$2 install
     patchelf --set-soname libzstd.so $SDR_KIT_ROOT/$2/lib/libzstd.so
     cd ..
 }
@@ -101,7 +102,7 @@ build_fftw() { # [android_abi]
     echo "===================== FFTW3 ($1) ====================="
     cd fftw
     mkdir -p build_$1 && cd build_$1
-    cmake $(gen_cmake_args $1) -DENABLE_FLOAT=ON ..
+    cmake $(gen_cmake_args $1) -DENABLE_FLOAT=ON -DBUILD_TESTS=OFF ..
     make $MAKEOPTS
     make DESTDIR=$SDR_KIT_ROOT/$1 install
     cd ../../
@@ -117,7 +118,7 @@ build_codec2() { # [android_abi]
     cd codec2
     mkdir -p build_$1 && cd build_$1
     load_native_toolchain
-    cmake $(gen_cmake_args $1) -DUNITTEST=FALSE -DGENERATE_CODEBOOK=$SDR_KIT_BUILD/codec2/build_linux/src/generate_codebook ..
+    cmake $(gen_cmake_args $1) -DUNITTEST=FALSE -DBUILD_EXAMPLES=OFF -DGENERATE_CODEBOOK=$SDR_KIT_BUILD/codec2/build_linux/src/generate_codebook ..
     make $MAKEOPTS
     make DESTDIR=$SDR_KIT_ROOT/$1 install
     cd ../../
@@ -163,7 +164,7 @@ build_volk() { # [android_abi]
     echo "===================== Volk ($1) ====================="
     cd volk
     mkdir -p build_$1 && cd build_$1
-    cmake $(gen_cmake_args $1) ..
+    cmake $(gen_cmake_args $1) -DENABLE_TESTING=OFF -DENABLE_PROFILING=OFF ..
     make $MAKEOPTS
     make DESTDIR=$SDR_KIT_ROOT/$1 install
     cd ../../
@@ -208,7 +209,7 @@ build_libhackrf() { # [android_abi]
     echo "===================== libhackrf ($1) ====================="
     cd hackrf/host
     mkdir -p build_$1 && cd build_$1
-    cmake $(gen_cmake_args $1) $(gen_cmake_libusb_args $1) $(gen_cmake_fftw_args $1) -DDISABLE_USB_ENUMERATION=ON ..
+    cmake $(gen_cmake_args $1) $(gen_cmake_libusb_args $1) $(gen_cmake_fftw_args $1) -DDISABLE_USB_ENUMERATION=ON -DBUILD_TESTS=OFF ..
     make $MAKEOPTS
     make DESTDIR=$SDR_KIT_ROOT/$1 install
     cd ../../../
@@ -223,7 +224,7 @@ build_librtlsdr() { # [android_abi]
     echo "===================== librtlsdr ($1) ====================="
     cd librtlsdr
     mkdir -p build_$1 && cd build_$1
-    cmake $(gen_cmake_args $1) $(gen_cmake_libusb_args $1) ..
+    cmake $(gen_cmake_args $1) $(gen_cmake_libusb_args $1) -DBUILD_UTILITIES=OFF -DINSTALL_UDEV_RULES=OFF ..
     make $MAKEOPTS
     make DESTDIR=$SDR_KIT_ROOT/$1 install
     cd ../../
@@ -238,7 +239,7 @@ build_libxml2() { # [android_abi]
     echo "===================== LibXML2 ($1) ====================="
     cd libxml2
     mkdir -p build_$1 && cd build_$1
-    cmake $(gen_cmake_args $1) -DLIBXML2_WITH_LZMA=OFF -DLIBXML2_WITH_PYTHON=OFF ..
+    cmake $(gen_cmake_args $1) -DLIBXML2_WITH_LZMA=OFF -DLIBXML2_WITH_PYTHON=OFF -DLIBXML2_WITH_PROGRAMS=OFF -DLIBXML2_WITH_TESTS=OFF ..
     make $MAKEOPTS
     make DESTDIR=$SDR_KIT_ROOT/$1 install
     cd ../../
@@ -253,7 +254,7 @@ build_libiio() { # [android_abi]
     echo "===================== LibIIO ($1) ====================="
     cd libiio
     mkdir -p build_$1 && cd build_$1
-    cmake $(gen_cmake_args $1) $(gen_cmake_libxml2_args $1) -DWITH_TESTS=OFF -DWITH_USB_BACKEND=OFF -DHAVE_DNS_SD=OFF ..
+    cmake $(gen_cmake_args $1) $(gen_cmake_libxml2_args $1) -DWITH_TESTS=OFF -DWITH_USB_BACKEND=OFF -DHAVE_DNS_SD=OFF -DWITH_EXAMPLES=OFF -DWITH_DOC=OFF ..
     make $MAKEOPTS
     make DESTDIR=$SDR_KIT_ROOT/$1 install
     cd ../../
