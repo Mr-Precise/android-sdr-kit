@@ -1,5 +1,8 @@
 set -e
 
+# Clear any pre-set JAVA_HOME to prevent sdkmanager checking non-existent path
+unset JAVA_HOME
+
 # Settings
 export ANDROID_INSTALLER=commandlinetools-linux-11076708_latest.zip
 export ANDROID_API_LEVEL=28
@@ -12,9 +15,16 @@ export SDR_KIT_BUILD=/root/sdr-kit-build
 export SDR_KIT_ROOT=/sdr-kit
 export MAKEOPTS=-j$(nproc)
 
-# Install dependencies
+# Install dependencies (explicitly openjdk-17-jdk)
 apt update -y
-apt install -y wget git p7zip-full unzip default-jdk build-essential cmake patchelf python3-mako
+apt install -y wget git p7zip-full unzip openjdk-17-jdk build-essential cmake patchelf python3-mako
+
+# Detect Java 17 and create clean canonical symlink
+JAVA_DETECTED=$(dirname $(dirname $(readlink -f $(which java))))
+mkdir -p /opt
+ln -sfn "$JAVA_DETECTED" /opt/java
+export JAVA_HOME=/opt/java
+export PATH=$JAVA_HOME/bin:$PATH
 
 # Install the Android tools
 mkdir -p Android/cmdline-tools
@@ -55,8 +65,8 @@ chmod +x /root/package.sh
 /root/build.sh
 
 # Setup environment variables at launch
+echo "export JAVA_HOME=/opt/java" >> /etc/profile
 echo "export ANDROID_HOME=$ANDROID_HOME" >> /etc/profile
 echo "export ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> /etc/profile
 echo "export ANDROID_NDK_VERSION=$ANDROID_NDK_VERSION" >> /etc/profile
-echo "export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> /etc/profile
-echo "export PATH=\$ANDROID_HOME/cmdline-tools/latest/bin:\$ANDROID_HOME/platform-tools:\$PATH" >> /etc/profile
+echo "export PATH=/opt/java/bin:\$ANDROID_HOME/cmdline-tools/latest/bin:\$ANDROID_HOME/platform-tools:\$PATH" >> /etc/profile
